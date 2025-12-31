@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+set -e
+
+die() { echo "[sanbox] $1"; exit 1; }
+
+CMD="$1"
+
+# ---------- CREATE ----------
+if [[ "$CMD" == "new" ]]; then
+  NAME="$2"
+  [[ -z "$NAME" ]] && die "name required"
+
+  [[ -e "$NAME" ]] && die "directory already exists"
+
+  mkdir -p "$NAME"/{root,home,loot}
+
+  cat > "$NAME/config" <<'EOF'
+# SANBOX CONFIG
+SYSTEM=ro          # ro | isolated
+WORDLISTS=yes
+RW_PATHS=/loot
+EOF
+
+  echo "[+] sandbox created: $NAME"
+  echo "    cd $NAME && sanbox"
+  exit 0
+fi
+
+# ---------- ACTIVATE (PWD) ----------
+SB="."
+CFG="./config"
+
+[[ ! -f "$CFG" ]] && die "no sandbox here (config missing)"
+
+# load config
+# shellcheck source=/dev/null
+source "$CFG"
+
+NAME="$(basename "$(pwd)")"
+TMP="/tmp/sanbox-$NAME-tmp"
+mkdir -p "$TMP"
+chmod 700 "$TMP"
+
+ARGS=(
+  bwrap
+  --unshare-all
+  --share-net
+  --uid 0 --gid 0
+  --proc /proc
+  --dev /dev
+  --clearenv
+  --setenv HOME /home
+  --setenv PS1 "[$NAME] \\w # "
+  --setenv TERM "$TERM"
+  --bind "$PWD/root" /
+  --bind "$PWD/home" /home
+  --bind "$TMP" /tmp
+  --tmpfs /etc
+  --tmpfs /var
+  --tmpfs /run
+)
+
+# ---------- SYSTEM ----------
+if [[ "$SYSTEM" == "ro" ]]; then
+  ARGS+=(
+    --ro-bind /usr /usr
+    --ro-bind /bin /bin
+    --ro-bind /sbin /sbin
+    --ro-bind /lib /lib
+    --ro-bind /lib64 /lib64
+  )
+fi
+
+# ---------- RW PATHS ----------
+IFS=',' read -ra RW <<< "$RW_PATHS"
+for p in "${RW[@]}"; do
+  mkdir -p ".$p"
+  ARGS+=(--bind "$PWD$p" "$p")
+done
+
+exec "${ARGS[@]}" /bin/bash --noprofile --norc
