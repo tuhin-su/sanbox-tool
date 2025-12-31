@@ -143,7 +143,6 @@ Edit the `config` file inside the sandbox folder.
 
 ```bash
 SYSTEM=ro          # ro | isolated
-WORDLISTS=yes
 RW_PATHS=/loot
 ```
 
@@ -153,11 +152,6 @@ RW_PATHS=/loot
 
 * `ro` → Read-only system (recommended)
 * `isolated` → No system binaries at all
-
-#### `WORDLISTS`
-
-* `yes` → Mount system wordlists read-only
-* `no` → No wordlists
 
 #### `RW_PATHS`
 
@@ -181,12 +175,6 @@ ffuf
 sqlmap
 gcc
 python
-```
-
-Wordlists:
-
-```bash
-/usr/share/wordlists
 ```
 
 Temporary work:
