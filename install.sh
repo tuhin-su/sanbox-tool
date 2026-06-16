@@ -34,6 +34,5 @@ fi
 
 # Make it executable
 chmod +x "$INSTALL_DIR/sanbox"
-rm -rf ../sanbox-tool
 echo "Installation complete!"
 echo "Please ensure $INSTALL_DIR is in your PATH."
