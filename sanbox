@@ -5,6 +5,13 @@ die() { echo "[sanbox] $1"; exit 1; }
 
 CMD="$1"
 
+# ---------- HELP ----------
+if [[ "$CMD" == "--help" || "$CMD" == "-h" ]]; then
+  echo "Usage: sanbox new <name>        - Create a new sandbox"
+  echo "       sanbox [command [args]] - Run a command inside the sandbox (default: bash)"
+  exit 0
+fi
+
 # ---------- CREATE ----------
 if [[ "$CMD" == "new" ]]; then
   NAME="$2"
@@ -32,12 +39,19 @@ CFG="./config"
 
 [[ ! -f "$CFG" ]] && die "no sandbox here (config missing)"
 
-# load config
+# Load configuration defaults
+SYSTEM="ro"
+WORDLISTS="no"
+RW_PATHS=""
+
+# Load config
 # shellcheck source=/dev/null
 source "$CFG"
 
 NAME="$(basename "$(pwd)")"
-TMP="/tmp/sanbox-$NAME-tmp"
+USER_ID="$(id -u)"
+PATH_HASH="$(echo -n "$PWD" | md5sum | cut -d' ' -f1)"
+TMP="/tmp/sanbox-$USER_ID-$NAME-$PATH_HASH"
 mkdir -p "$TMP"
 chmod 700 "$TMP"
 
@@ -77,11 +91,43 @@ if [[ "$SYSTEM" == "ro" ]]; then
   )
 fi
 
+# ---------- WORDLISTS ----------
+if [[ "$WORDLISTS" == "yes" ]]; then
+  [[ -d "/usr/share/wordlists" ]] && ARGS+=(--ro-bind-try /usr/share/wordlists /usr/share/wordlists)
+  [[ -d "/usr/share/dict" ]] && ARGS+=(--ro-bind-try /usr/share/dict /usr/share/dict)
+fi
+
 # ---------- RW PATHS ----------
+# Enable extended globbing for whitespace trimming
+shopt -s extglob
+
 IFS=',' read -ra RW <<< "$RW_PATHS"
 for p in "${RW[@]}"; do
+  # Trim spaces
+  p="${p##*([[:space:]])}"
+  p="${p%%*([[:space:]])}"
+  
+  # Skip if empty
+  [[ -z "$p" ]] && continue
+  
+  # Ensure it is an absolute path format (starts with a slash)
+  [[ "$p" != /* ]] && p="/$p"
+  
+  # Create source directory on the host and ensure target mount point exists in sandbox root
   mkdir -p ".$p"
+  mkdir -p "root$p"
+  
   ARGS+=(--bind "$PWD$p" "$p")
 done
 
-exec "${ARGS[@]}" /bin/bash --noprofile --norc
+# Determine command to run
+if [[ $# -gt 0 ]]; then
+  exec "${ARGS[@]}" "$@"
+else
+  # Default to bash if available, fall back to sh
+  if [[ "$SYSTEM" == "ro" || -f "$PWD/root/bin/bash" ]]; then
+    exec "${ARGS[@]}" /bin/bash --noprofile --norc
+  else
+    exec "${ARGS[@]}" /bin/sh
+  fi
+fi

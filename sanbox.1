@@ -1,0 +1,84 @@
+.TH SANBOX 1 "June 2026" "v1.0" "SANBOX Manual"
+.SH NAME
+sanbox \- Lightweight OS-level sandbox manager using bubblewrap
+.SH SYNOPSIS
+.B sanbox new
+.I name
+.br
+.B sanbox
+[
+.I command
+[
+.I args...
+]
+]
+.br
+.B sanbox
+{
+.B \-h
+|
+.B \-\-help
+}
+.SH DESCRIPTION
+.B sanbox
+is an ultra-lightweight, daemonless OS-level sandboxing utility built on top of
+.BR bwrap (1).
+It provides an isolated filesystem, network, and process space for developers and security researchers to run untrusted software, malware analysis, or isolated environments.
+.SH COMMANDS
+.TP
+.B new \fIname\fR
+Create and initialize a new sandbox environment in a directory named \fIname\fR.
+This directory will contain:
+.RS
+.IP \(bu 2
+.B config
+- Configuration options for the sandbox (e.g. system mode, persistent paths).
+.IP \(bu 2
+.B root/
+- The root filesystem mount point inside the sandbox where file writes are saved.
+.IP \(bu 2
+.B home/
+- The isolated home directory for the sandbox.
+.IP \(bu 2
+.B loot/
+- A default writable directory for persistent shared data.
+.RE
+.TP
+.B [command [args...]]
+Activate the sandbox from the current directory (which must contain a \fBconfig\fR file). If a command and arguments are provided, they will be executed within the sandbox. If no command is specified, it runs the default shell (\fB/bin/bash\fR if available, falling back to \fB/bin/sh\fR).
+.SH CONFIGURATION
+Each sandbox directory contains a \fBconfig\fR file sourced by the script. It supports the following variables:
+.TP
+.B SYSTEM
+Determines the filesystem mode.
+.RS
+.TP
+.B ro
+Mounts the host's system binaries (\fB/usr\fR, \fB/bin\fR, \fB/sbin\fR, \fB/lib\fR, \fB/lib64\fR) as read-only. Recommended for general usage.
+.TP
+.B isolated
+Provides a completely empty namespace with no host system binaries. Useful for static binaries.
+.RE
+.TP
+.B WORDLISTS
+Can be set to \fByes\fR or \fBno\fR. If \fByes\fR, bind-mounts common pentesting wordlist directories like \fB/usr/share/wordlists\fR and \fB/usr/share/dict\fR (if they exist on the host) read-only inside the sandbox.
+.TP
+.B RW_PATHS
+A comma-separated list of directories (relative to the sandbox root) that should be writable and persistent (e.g. \fB/loot\fR).
+.SH EXAMPLES
+Create and start a new sandbox:
+.IP
+.nf
+$ sanbox new mybox
+$ cd mybox
+$ sanbox
+[mybox] ~ #
+.fi
+.PP
+Run a command directly inside the sandbox:
+.IP
+.nf
+$ sanbox python3 exploit.py
+.fi
+.SH SEE ALSO
+.BR bwrap (1)

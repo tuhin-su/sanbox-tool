@@ -76,9 +76,15 @@ git clone https://github.com/yourusername/sanbox-tool.git
 cd sanbox-tool
 
 # Run the installer
-# (Installs to ~/.local/bin/sanbox if run as a regular user, or /usr/local/bin/sanbox if run as root)
-./install.sh
+# (Installs the binary to ~/.local/bin/sanbox and the man page to ~/.local/share/man/man1/sanbox.1)
+make install
 ```
+
+Once installed, you can read the command's full documentation by running:
+```bash
+man sanbox
+```
+
 
 > [!IMPORTANT]
 > If you installed as a regular user, make sure `~/.local/bin` is in your environment's `PATH`. You can add this to your `~/.bashrc` or `~/.zshrc`:
@@ -225,9 +231,9 @@ rm -rf target-env/
 
 To remove SANBOX from your system:
 ```bash
-rm -f ~/.local/bin/sanbox
+make uninstall
 # Or if installed system-wide:
-sudo rm -f /usr/local/bin/sanbox
+sudo make uninstall
 ```
 
 ---
