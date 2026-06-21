@@ -108,7 +108,7 @@ Windows does not natively support Linux namespaces. To run SANBOX, use **Windows
    ```bash
    sudo apt update && sudo apt install -y bubblewrap git
    git clone https://github.com/yourusername/sanbox-tool.git
-   cd sanbox-tool && ./install.sh
+   cd sanbox-tool && make install
    ```
 
 ---
